@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#1F3A5F">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Chemist Sales Panel</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <style>
@@ -127,7 +130,7 @@ details summary{cursor:pointer;color:var(--ink-2);font-weight:500}
 </div>
 <div class="wrap" id="app" hidden>
   <header><div><h1>Chemist Sales Panel</h1><div class="sub">Moyale · amounts in KES · cash and till tracked separately</div></div>
-    <div class="top"><span class="sub" id="who"></span><button class="btn sm" id="btn_pw" type="button">Change password</button><button class="btn sm" id="btn_out" type="button">Sign out</button></div></header>
+    <div class="top"><span class="sub" id="who"></span><button class="btn sm" id="btn_install" type="button" hidden>Install app</button><button class="btn sm" id="btn_pw" type="button">Change password</button><button class="btn sm" id="btn_out" type="button">Sign out</button></div></header>
   <nav id="nav" aria-label="Sections">
     <a href="#overview" data-tab="overview">Overview</a>
     <a href="#sell" data-tab="sell">Sell</a>
@@ -474,10 +477,19 @@ document.addEventListener('change',function(e){
 });
 
 
+
+/* ---------- install as an app, offline start ---------- */
+var deferredInstall=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredInstall=e;var b=$('#btn_install');if(b)b.hidden=false});
+window.addEventListener('appinstalled',function(){deferredInstall=null;var b=$('#btn_install');if(b)b.hidden=true;toast('App installed')});
+$('#btn_install').addEventListener('click',async function(){if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;$('#btn_install').hidden=true});
+window.addEventListener('offline',function(){toast('No internet. You can look around, but sales cannot be saved until it is back.')});
+window.addEventListener('online',function(){toast('Back online');if(state.db)reload().catch(function(){})});
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
 /* ---------- supabase, login, boot ---------- */
 var SUPA_URL='https://dkmymnbjtzpuyzmyixzi.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrbXltbmJqdHpwdXl6bXlpeHppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NTQ4MDEsImV4cCI6MjEwOTUzMDgwMX0.72nJo42-Yi7LN0NrsFB8TG9FXMN9Mq1uLJj6tED3wPE';
-function dbErr(e,prefix){var m=(e&&e.message)||'error';if(/check constraint/i.test(m))m='Not enough stock for one of the drugs.';else if(/duplicate key/i.test(m))m='That name already exists.';else if(/Failed to fetch|NetworkError/i.test(m))m='No internet connection.';return prefix+': '+m}
+function dbErr(e,prefix){var m=(e&&e.message)||'error';if(/check constraint/i.test(m))m='Not enough stock for one of the drugs.';else if(/duplicate key/i.test(m))m='That name already exists.';else if(/Failed to fetch|NetworkError|Load failed/i.test(m))m='No internet connection. Nothing was saved.';return prefix+': '+m}
 async function reload(){
   var sb=state.sb;
   var r=await Promise.all([
