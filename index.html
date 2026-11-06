@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1F3A5F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Chemist Sales Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+html{color-scheme:light dark}
+
+/* Layout: sticky tab bar over one working area. Overview = summary first; Sell = picker + cart; Stock/Log/Cash book = tables. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --surface-2:#eaeef2; --ink:#14202b; --ink-2:#4c5a67; --ink-3:#6f7d8a;
+  --line:#d8dfe6; --accent:#2a6fd1; --accent-ink:#ffffff; --accent-soft:#e3eefc;
+  --ok:#1f7a3d; --ok-bg:#e0f2e6; --low:#8a5200; --low-bg:#fbeacc; --out:#b3261e; --out-bg:#fbe1df;
+  --s1:#2a78d6; --s2:#eb6834; --grid:#e3e8ed;
+  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --ink:#e8edf2; --ink-2:#b4c0cb; --ink-3:#8b99a6;
+  --line:#2c3a47; --accent:#5a9bf0; --accent-ink:#0b1722; --accent-soft:#1b2e47;
+  --ok:#6fcf8d; --ok-bg:#16301f; --low:#f0b45a; --low-bg:#3a2a10; --out:#ff8b83; --out-bg:#3d1b19;
+  --s1:#3987e5; --s2:#d95926; --grid:#26323e; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f161d; --surface:#17212b; --surface-2:#1f2b37; --ink:#e8edf2; --ink-2:#b4c0cb; --ink-3:#8b99a6;
+  --line:#2c3a47; --accent:#5a9bf0; --accent-ink:#0b1722; --accent-soft:#1b2e47;
+  --ok:#6fcf8d; --ok-bg:#16301f; --low:#f0b45a; --low-bg:#3a2a10; --out:#ff8b83; --out-bg:#3d1b19;
+  --s1:#3987e5; --s2:#d95926; --grid:#26323e; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:1080px;margin:0 auto}
+header{padding:18px 0 10px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;justify-content:space-between}
+h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--ink-3);font-size:12.5px}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);padding:6px 0}
+nav a{padding:8px 14px;border-radius:6px;color:var(--ink-2);text-decoration:none;font-weight:500;white-space:nowrap}
+nav a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+nav a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-top:16px;display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.panel h2{font-size:14px;margin:0 0 10px;font-weight:600}
+.panel h2 small{font-weight:400;color:var(--ink-3);margin-left:6px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+.kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.kpi .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.kpi .v{font-family:var(--mono);font-size:22px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .n{font-size:12px;color:var(--ink-2)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);text-align:left;font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th.num{text-align:right}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.07)}
+.btn.sm{padding:4px 8px;font-size:12.5px}
+.btn.danger{color:var(--out)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;min-width:0;max-width:100%}
+input[type=number]{font-family:var(--mono)}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-2);font-weight:500}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));align-items:end}
+.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.low{background:var(--low-bg);color:var(--low)} .pill.out{background:var(--out-bg);color:var(--out)} .pill.ex{background:var(--surface-2);color:var(--ink-2)}
+.bar{height:8px;border-radius:4px;background:var(--s1);min-width:2px}
+.row{display:grid;grid-template-columns:minmax(80px,1.2fr) 3fr auto;gap:10px;align-items:center;padding:4px 0}
+.row .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{color:var(--ink-3);padding:14px;border:1px dashed var(--line);border-radius:6px;text-align:center}
+.banner{background:var(--low-bg);color:var(--low);padding:10px 12px;border-radius:6px;font-weight:500}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin-bottom:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+.tip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:3;white-space:nowrap}
+.tip b{font-family:var(--mono)}
+.sell{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+@media (max-width:760px){.sell{grid-template-columns:minmax(0,1fr)}}
+.picker{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto;margin-top:8px}
+.pick{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;width:100%;padding:8px 10px}
+.pick small{color:var(--ink-3)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-weight:600;border:0;background:var(--surface);color:var(--ink-2);padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.total{font-family:var(--mono);font-size:28px;font-weight:600}
+.cartline{display:grid;grid-template-columns:minmax(0,1fr) 62px 78px auto;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.cartline .lt{font-family:var(--mono);text-align:right;min-width:70px}
+.dayhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:8px 0;border-bottom:2px solid var(--line);font-weight:600;margin-top:10px}
+.sale{display:grid;grid-template-columns:54px minmax(0,1fr) auto auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);align-items:center}
+.sale .t{font-family:var(--mono);color:var(--ink-3);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:20;font-weight:500;max-width:90vw}
+.overlay{position:fixed;inset:0;background:rgba(10,16,22,.55);z-index:15;display:flex;align-items:flex-start;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) 16px;overflow:auto}
+.overlay .panel{width:min(560px,100%)}
+details summary{cursor:pointer;color:var(--ink-2);font-weight:500}
+.muted{color:var(--ink-3)} .small{font-size:12px}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .18s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
+
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 0}
+.auth .panel{width:min(380px,100%)}
+.auth h1{margin-bottom:4px}
+.err{color:var(--out);min-height:1.3em;margin:8px 0 0;font-weight:500}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="auth" class="auth" hidden>
+  <div class="panel">
+    <h1>Chemist Sales Panel</h1>
+    <p class="sub" style="margin:0 0 14px">Moyale · sign in to continue</p>
+    <form id="lg_form" class="form" style="grid-template-columns:1fr" autocomplete="on">
+      <label>Email<input id="lg_email" type="email" value="waqodiid@gmail.com" autocomplete="username" required></label>
+      <label>Password<input id="lg_pw" type="password" autocomplete="current-password" required></label>
+      <button id="lg_btn" class="btn pri" type="submit">Sign in</button>
+    </form>
+    <p id="lg_err" class="err" role="alert"></p>
+  </div>
+</div>
+<div class="wrap" id="app" hidden>
+  <header><div><h1>Chemist Sales Panel</h1><div class="sub">Moyale · amounts in KES · cash and till tracked separately</div></div>
+    <div class="top"><span class="sub" id="who"></span><button class="btn sm" id="btn_pw" type="button">Change password</button><button class="btn sm" id="btn_out" type="button">Sign out</button></div></header>
+  <nav id="nav" aria-label="Sections">
+    <a href="#overview" data-tab="overview">Overview</a>
+    <a href="#sell" data-tab="sell">Sell</a>
+    <a href="#stock" data-tab="stock">Stock</a>
+    <a href="#log" data-tab="log">Sales log</a>
+    <a href="#cashbook" data-tab="cashbook">Day book</a>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="layer"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var state={db:false,sb:null,stock:{},sales:[],book:{},restocks:[],loaded:{},tab:'overview',cart:[],pay:'cash',cashIn:'',search:'',logDays:10,err:'',editDay:null};
+var TABS=['overview','sell','stock','log','cashbook'];
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONFULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function fmt(n){return Math.round(n||0).toLocaleString('en-US')}
+function kfmt(n){return n>=1000?(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,'')+'k':String(Math.round(n))}
+function pad(n){return n<10?'0'+n:''+n}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function pd(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function fd(s){var d=pd(s);return WD[(d.getDay()+6)%7]+' '+d.getDate()+' '+MON[d.getMonth()]}
+function monLabel(ym){var p=ym.split('-');return MONFULL[+p[1]-1]+' '+p[0]}
+function toast(m){var t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.remove()},3200)}
+function nice(max,n){var raw=max/n||1,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,s=f<=1?1:f<=2?2:f<=5?5:10;return s*p}
+function status(it){var q=it.qty||0;return q<=0?'out':q<=(it.reorder||0)?'low':'ok'}
+function statusPill(it){var s=status(it);return '<span class="pill '+s+'">'+(s==='out'?'✕ Out':s==='low'?'▲ Low':'✓ In stock')+'</span>'}
+
+/* ---------- data ---------- */
+function dayMap(){
+  var m={};
+  function g(d){return m[d]||(m[d]={bc:0,bt:0,e:0,ic:0,it:0,n:0,note:'',inBook:false})}
+  Object.keys(state.book).forEach(function(ym){var days=(state.book[ym]||{}).days||{};Object.keys(days).forEach(function(d){var x=days[d],r=g(d);r.bc+=x.c||0;r.bt+=x.t||0;r.e+=x.e||0;r.note=x.note||'';r.inBook=true})});
+  state.sales.forEach(function(s){var r=g(s.date);r.ic+=s.cash||0;r.it+=s.till||0;r.n++});
+  Object.keys(m).forEach(function(d){var r=m[d];r.c=r.bc+r.ic;r.t=r.bt+r.it;r.total=r.c+r.t});
+  return m;
+}
+function monthAgg(dm){
+  var out={};
+  Object.keys(dm).forEach(function(d){var r=dm[d];if(r.total<=0)return;var ym=d.slice(0,7),o=out[ym]||(out[ym]={ym:ym,c:0,t:0,e:0,days:0,best:0,bestD:''});o.c+=r.c;o.t+=r.t;o.e+=r.e;o.days++;if(r.total>o.best){o.best=r.total;o.bestD=d}});
+  return Object.keys(out).sort().map(function(k){var o=out[k];o.total=o.c+o.t;o.avg=o.total/o.days;return o});
+}
+
+/* ---------- shell & routing ---------- */
+function setTab(){
+  var h=(location.hash||'').replace('#','');state.tab=TABS.indexOf(h)>=0?h:'overview';
+  document.querySelectorAll('#nav a').forEach(function(a){if(a.dataset.tab===state.tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  buildTab();
+}
+window.addEventListener('hashchange',setTab);
+function buildTab(){
+  var m=$('#main');
+  var banner='';
+  if(state.err)banner+='<div class="banner">'+esc(state.err)+'</div>';
+  m.innerHTML='<div id="banner">'+banner+'</div><div id="tabbody"></div>';
+  ({overview:buildOverview,sell:buildSell,stock:buildStock,log:buildLog,cashbook:buildBook})[state.tab]();
+}
+function refresh(){
+  if(!$('#tabbody'))return;
+  if(state.tab==='overview')buildOverview();
+  else if(state.tab==='sell')renderSellDyn();
+  else if(state.tab==='stock')renderStockDyn();
+  else if(state.tab==='log')renderLogDyn();
+  else renderBookDyn();
+}
+
+/* ---------- overview ---------- */
+function buildOverview(){
+  var dm=dayMap(),months=monthAgg(dm),today=ymd(new Date()),thisYm=today.slice(0,7);
+  var tot=0,exp=0,days=0,best=null,cashT=0,tillT=0;
+  months.forEach(function(m){tot+=m.total;exp+=m.e;days+=m.days;cashT+=m.c;tillT+=m.t;if(!best||m.total>best.total)best=m});
+  var cur=months.filter(function(m){return m.ym===thisYm})[0];
+  var td=dm[today];
+  var low=Object.keys(state.stock).map(function(k){return state.stock[k]}).filter(function(i){return status(i)!=='ok'}).sort(function(a,b){return a.qty-b.qty});
+  var h='';
+  h+='<div class="kpis">'
+   +'<div class="kpi"><div class="l">Today</div><div class="v">'+fmt(td?td.total:0)+'</div><div class="n">'+(td&&td.n?td.n+' sales recorded':'cash '+fmt(td?td.c:0)+' · till '+fmt(td?td.t:0))+'</div></div>'
+   +'<div class="kpi"><div class="l">'+MONFULL[new Date().getMonth()]+'</div><div class="v">'+fmt(cur?cur.total:0)+'</div><div class="n">'+(cur?cur.days+' trading days · '+fmt(cur.avg)+'/day':'no sales yet')+'</div></div>'
+   +'<div class="kpi"><div class="l">Total recorded</div><div class="v">'+fmt(tot)+'</div><div class="n">'+days+' days · cash '+fmt(cashT)+' · till '+fmt(tillT)+'</div></div>'
+   +'<div class="kpi"><div class="l">Best month</div><div class="v">'+(best?MON[+best.ym.slice(5)-1]:'–')+'</div><div class="n">'+(best?'KES '+fmt(best.total)+' · '+fmt(best.avg)+'/day':'')+'</div></div>'
+   +'</div>';
+  h+='<div class="panel"><h2>Sales by month<small>cash and till</small></h2><div class="legend"><span><i style="background:var(--s1)"></i>Cash</span><span><i style="background:var(--s2)"></i>Till</span></div><div class="chart" id="mchart"></div></div>';
+  h+='<div class="panel"><h2>Months ranked by sales<small>highest first</small></h2><div class="tw"><table><thead><tr><th>#</th><th>Month</th><th class="num">Total sales</th><th>&nbsp;</th><th class="num">Cash</th><th class="num">Till</th><th class="num">Days</th><th class="num">Avg / day</th><th class="num">Expenses</th></tr></thead><tbody>';
+  var ranked=months.slice().sort(function(a,b){return b.total-a.total}),mx=ranked.length?ranked[0].total:1;
+  ranked.forEach(function(m,i){var part=m.ym===thisYm?' <span class="pill ex">so far</span>':m.ym==='2026-03'?' <span class="pill ex">from 20th</span>':'';
+    h+='<tr><td class="muted">'+(i+1)+'</td><td><b>'+monLabel(m.ym)+'</b>'+part+'</td><td class="num"><b>'+fmt(m.total)+'</b></td><td style="width:22%"><div class="bar" style="width:'+Math.max(2,m.total/mx*100)+'%"></div></td><td class="num">'+fmt(m.c)+'</td><td class="num">'+fmt(m.t)+'</td><td class="num">'+m.days+'</td><td class="num">'+fmt(m.avg)+'</td><td class="num">'+(m.e?fmt(m.e):'–')+'</td></tr>'});
+  if(!ranked.length)h+='<tr><td colspan="9"><div class="empty">No sales loaded yet.</div></td></tr>';
+  h+='</tbody></table></div><p class="small muted" style="margin:10px 0 0">Sales are cash plus till before expenses. Compare months by Avg / day, because March starts on the 20th and the current month is still running.</p></div>';
+  h+='<div class="panel"><h2>Daily trend<small>each day and the 7-day average</small></h2><div class="legend"><span><i style="background:var(--ink-3)"></i>Daily total</span><span><i style="background:var(--s1)"></i>7-day average</span></div><div class="chart" id="lchart"></div></div>';
+  h+='<div class="grid"><div class="panel"><h2>Average by weekday</h2><div id="wd"></div></div><div class="panel"><h2>Top sellers<small>last 30 days, item by item</small></h2><div id="top"></div></div></div>';
+  h+='<div class="panel"><h2>Stock needing attention<small>'+low.length+' items</small></h2>'+(low.length?'<div class="tw"><table><tbody>'+low.slice(0,10).map(function(i){return '<tr><td>'+esc(i.name)+'</td><td class="num">'+i.qty+' '+esc(i.unit||'')+'</td><td>'+statusPill(i)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="empty">'+(Object.keys(state.stock).length?'Everything is above its reorder level.':'Add your drugs on the Stock tab to see low-stock warnings here.')+'</div>')+'</div>';
+  h+='<details class="panel"><summary>About the imported 2026 figures</summary><p class="small muted">Daily cash and till figures come from your CHEMIST FINANCIAL YEAR 2026 notes (20 March to 1 November). Sundays, closed days and blank days count as no sales. 3 to 6 April are not in the notes. 14 April and 15 April both show 565 cash and 60 till, so one of them may be a copy. 11 August has only a total of 355 with no cash/till split (counted as cash). 24 to 31 October: the weekly total in the notes (4,165) did not match the daily rows, so the daily rows were used. Daily totals are before expenses, which are listed separately.</p></details>';
+  $('#tabbody').innerHTML=h;
+  drawMonths(months);drawLine(dm);drawWeekday(dm);drawTop();
+}
+function tipShow(host,html,x,y){var t=host.querySelector('.tip');if(!t){t=document.createElement('div');t.className='tip';host.appendChild(t)}t.innerHTML=html;var w=host.clientWidth;t.style.left=Math.min(Math.max(0,x+12),w-t.offsetWidth)+'px';t.style.top=Math.max(0,y-8-t.offsetHeight)+'px'}
+function tipHide(host){var t=host.querySelector('.tip');if(t)t.remove()}
+function drawMonths(months){
+  var host=$('#mchart');if(!host)return;
+  if(!months.length){host.innerHTML='<div class="empty">No data yet.</div>';return}
+  var W=640,H=250,L=40,R=6,T=22,B=26,max=0;months.forEach(function(m){max=Math.max(max,m.total)});
+  var step=nice(max,4),top=Math.ceil(max/step)*step,pw=W-L-R,ph=H-T-B,bw=Math.min(52,pw/months.length*.62),best=months.reduce(function(a,m){return m.total>a.total?m:a},months[0]);
+  function y(v){return T+ph-v/top*ph}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Monthly sales, cash and till">';
+  for(var v=0;v<=top;v+=step){s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--grid)"/><text x="'+(L-6)+'" y="'+(y(v)+3)+'" text-anchor="end">'+kfmt(v)+'</text>'}
+  months.forEach(function(m,i){
+    var cx=L+pw/months.length*(i+.5),x=cx-bw/2,hc=m.c/top*ph,ht=m.t/top*ph,yc=y(m.c),yt=yc-ht-2;
+    if(hc>0)s+='<rect x="'+x+'" y="'+yc+'" width="'+bw+'" height="'+hc+'" rx="3" fill="var(--s1)"/>';
+    if(ht>0)s+='<rect x="'+x+'" y="'+yt+'" width="'+bw+'" height="'+ht+'" rx="3" fill="var(--s2)"/>';
+    s+='<text x="'+cx+'" y="'+(y(m.total)-(ht>0?8:6))+'" text-anchor="middle" style="fill:var(--ink);font-weight:'+(m===best?700:500)+'">'+kfmt(m.total)+'</text>';
+    s+='<text x="'+cx+'" y="'+(H-8)+'" text-anchor="middle">'+MON[+m.ym.slice(5)-1]+'</text>';
+    s+='<rect class="hit" data-i="'+i+'" x="'+(cx-pw/months.length/2)+'" y="'+T+'" width="'+(pw/months.length)+'" height="'+ph+'" fill="transparent"/>';
+  });
+  s+='</svg>';host.innerHTML=s;
+  host.querySelectorAll('.hit').forEach(function(r){
+    r.addEventListener('pointermove',function(e){var m=months[+r.dataset.i],b=host.getBoundingClientRect();tipShow(host,'<b>'+monLabel(m.ym)+'</b><br>Total <b>'+fmt(m.total)+'</b><br>Cash '+fmt(m.c)+' · Till '+fmt(m.t)+'<br>'+m.days+' days · '+fmt(m.avg)+'/day',e.clientX-b.left,e.clientY-b.top)});
+    r.addEventListener('pointerleave',function(){tipHide(host)});
+  });
+}
+function drawLine(dm){
+  var host=$('#lchart');if(!host)return;
+  var ds=Object.keys(dm).filter(function(d){return dm[d].total>0}).sort();
+  if(ds.length<2){host.innerHTML='<div class="empty">The trend appears once there are at least two days of sales.</div>';return}
+  var t0=pd(ds[0]).getTime(),t1=pd(ds[ds.length-1]).getTime(),DAY=864e5;
+  var pts=ds.map(function(d){var t=pd(d).getTime(),sum=0,n=0;ds.forEach(function(e){var te=pd(e).getTime();if(te<=t&&te>t-7*DAY){sum+=dm[e].total;n++}});return {d:d,t:t,v:dm[d].total,a:sum/n}});
+  var W=640,H=240,L=40,R=8,T=10,B=26,max=0;pts.forEach(function(p){max=Math.max(max,p.v)});
+  var step=nice(max,4),top=Math.ceil(max/step)*step,pw=W-L-R,ph=H-T-B;
+  function X(t){return L+(t-t0)/(t1-t0)*pw} function Y(v){return T+ph-v/top*ph}
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Daily sales trend with 7-day average">';
+  for(var v=0;v<=top;v+=step)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--grid)"/><text x="'+(L-6)+'" y="'+(Y(v)+3)+'" text-anchor="end">'+kfmt(v)+'</text>';
+  var seen={};pts.forEach(function(p){var ym=p.d.slice(0,7);if(!seen[ym]){seen[ym]=1;var d=pd(ym+'-01').getTime();var x=Math.max(L,X(Math.max(d,t0)));s+='<text x="'+x+'" y="'+(H-8)+'">'+MON[+ym.slice(5)-1]+'</text>'}});
+  s+='<polyline fill="none" stroke="var(--ink-3)" stroke-width="1" stroke-opacity=".7" stroke-linejoin="round" points="'+pts.map(function(p){return X(p.t).toFixed(1)+','+Y(p.v).toFixed(1)}).join(' ')+'"/>';
+  s+='<polyline fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="'+pts.map(function(p){return X(p.t).toFixed(1)+','+Y(p.a).toFixed(1)}).join(' ')+'"/>';
+  var lp=pts[pts.length-1];s+='<circle cx="'+X(lp.t)+'" cy="'+Y(lp.a)+'" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>';
+  s+='<g id="cx" hidden><line y1="'+T+'" y2="'+(T+ph)+'" stroke="var(--ink-3)" stroke-dasharray="3 3"/><circle r="4" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/></g>';
+  s+='<rect id="lhit" x="'+L+'" y="'+T+'" width="'+pw+'" height="'+ph+'" fill="transparent"/></svg>';
+  host.innerHTML=s;
+  var hit=$('#lhit',host),cx=$('#cx',host);
+  hit.addEventListener('pointermove',function(e){
+    var svg=host.querySelector('svg'),r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)/r.width*W,t=t0+(sx-L)/pw*(t1-t0),bi=0,bd=1e18;
+    pts.forEach(function(p,i){var dd=Math.abs(p.t-t);if(dd<bd){bd=dd;bi=i}});var p=pts[bi];
+    cx.removeAttribute('hidden');cx.querySelector('line').setAttribute('x1',X(p.t));cx.querySelector('line').setAttribute('x2',X(p.t));var c=cx.querySelector('circle');c.setAttribute('cx',X(p.t));c.setAttribute('cy',Y(p.v));
+    var hr=host.getBoundingClientRect();tipShow(host,'<b>'+fd(p.d)+'</b><br>Day <b>'+fmt(p.v)+'</b><br>7-day avg '+fmt(p.a),e.clientX-hr.left,e.clientY-hr.top);
+  });
+  hit.addEventListener('pointerleave',function(){cx.setAttribute('hidden','');tipHide(host)});
+}
+function drawWeekday(dm){
+  var host=$('#wd');if(!host)return;var s=[0,0,0,0,0,0,0],n=[0,0,0,0,0,0,0];
+  Object.keys(dm).forEach(function(d){var r=dm[d];if(r.total<=0)return;var w=(pd(d).getDay()+6)%7;s[w]+=r.total;n[w]++});
+  var av=s.map(function(v,i){return n[i]?v/n[i]:0}),mx=Math.max.apply(null,av)||1;
+  host.innerHTML=WD.map(function(w,i){return '<div class="row"><span>'+w+'</span><div><div class="bar" style="width:'+Math.max(av[i]?2:0,av[i]/mx*100)+'%"></div></div><span class="num">'+fmt(av[i])+'</span></div>'}).join('')+'<p class="small muted" style="margin:8px 0 0">Average takings on days that had sales.</p>';
+}
+function drawTop(){
+  var host=$('#top');if(!host)return;var cut=Date.now()-30*864e5,agg={};
+  state.sales.forEach(function(s){if(s.ts<cut)return;(s.lines||[]).forEach(function(l){var a=agg[l.name]||(agg[l.name]={name:l.name,q:0,v:0});a.q+=l.qty;a.v+=l.qty*l.price})});
+  var arr=Object.keys(agg).map(function(k){return agg[k]}).sort(function(a,b){return b.v-a.v}).slice(0,8),mx=arr.length?arr[0].v:1;
+  host.innerHTML=arr.length?arr.map(function(a){return '<div class="row"><span class="nm" title="'+esc(a.name)+'">'+esc(a.name)+'</span><div><div class="bar" style="width:'+Math.max(2,a.v/mx*100)+'%"></div></div><span class="num">'+fmt(a.v)+' <span class="muted">×'+a.q+'</span></span></div>'}).join(''):'<div class="empty">Item-by-item sales recorded on the Sell tab will rank here.</div>';
+}
+
+/* ---------- sell ---------- */
+function buildSell(){
+  $('#tabbody').innerHTML='<div class="sell"><div class="panel"><h2>Pick a drug</h2><input id="q" type="search" placeholder="Search drug name" aria-label="Search drug" style="width:100%"><div class="picker" id="picker"></div></div>'
+   +'<div class="panel"><h2>Current sale</h2><div id="cart"></div></div></div>'
+   +'<div class="panel"><h2>Today so far</h2><div id="todaybox"></div></div>';
+  var q=$('#q');q.value=state.search;q.addEventListener('input',function(){state.search=q.value;renderPicker()});
+  renderSellDyn();
+}
+function renderSellDyn(){renderPicker();renderCart();renderToday()}
+function renderPicker(){
+  var host=$('#picker');if(!host)return;var q=state.search.trim().toLowerCase();
+  var items=Object.keys(state.stock).map(function(k){return state.stock[k]}).filter(function(i){return !q||i.name.toLowerCase().indexOf(q)>=0}).sort(function(a,b){return a.name.localeCompare(b.name)});
+  var h=items.map(function(i){return '<button class="btn pick" data-act="add" data-id="'+i.id+'" '+(i.qty<=0?'disabled':'')+'><span><b>'+esc(i.name)+'</b><br><small>'+i.qty+' '+esc(i.unit||'')+' left</small></span><span class="num">'+fmt(i.price)+'</span></button>'}).join('');
+  if(!items.length)h='<div class="empty">'+(Object.keys(state.stock).length?'No drug matches. ':'No drugs in stock yet. Add them on the Stock tab. ')+'</div>';
+  if(q)h+='<button class="btn pick" data-act="addcustom"><span>Add "'+esc(state.search.trim())+'" as an item not in stock</span><span class="num">+</span></button>';
+  host.innerHTML=h;
+}
+function cartTotal(){return state.cart.reduce(function(a,l){return a+l.qty*l.price},0)}
+function renderCart(){
+  var host=$('#cart');if(!host)return;var total=cartTotal();
+  var h=state.cart.length?state.cart.map(function(l,i){return '<div class="cartline"><div style="min-width:0"><b>'+esc(l.name)+'</b>'+(l.id?'':' <span class="pill ex">not in stock</span>')+'</div>'
+    +'<input type="number" min="1" step="1" value="'+l.qty+'" data-act="qty" data-i="'+i+'" aria-label="Quantity of '+esc(l.name)+'">'
+    +'<input type="number" min="0" step="1" value="'+l.price+'" data-act="price" data-i="'+i+'" aria-label="Unit price of '+esc(l.name)+'">'
+    +'<button class="btn sm" data-act="rm" data-i="'+i+'" aria-label="Remove '+esc(l.name)+'">✕</button></div>'}).join('')
+    +'<div class="small muted" style="margin-top:4px">Quantity · unit price (KES)</div>':'<div class="empty">Tap a drug on the left to start a sale.</div>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 8px"><span class="muted">Total</span><span class="total">'+fmt(total)+'</span></div>';
+  h+='<div class="seg" role="group" aria-label="Payment"><button data-act="pay" data-p="cash" aria-pressed="'+(state.pay==='cash')+'">Cash</button><button data-act="pay" data-p="till" aria-pressed="'+(state.pay==='till')+'">Till</button><button data-act="pay" data-p="split" aria-pressed="'+(state.pay==='split')+'">Split</button></div>';
+  if(state.pay==='split'){var c=Math.min(Math.max(+state.cashIn||0,0),total);h+='<div class="form" style="margin-top:10px"><label>Cash part<input id="cashin" type="number" min="0" value="'+esc(state.cashIn)+'"></label><label>Till part<input type="number" value="'+(total-c)+'" disabled></label></div>'}
+  h+='<div style="margin-top:12px"><button class="btn pri" data-act="record" '+(state.cart.length&&state.db?'':'disabled')+'>Record sale</button> <button class="btn" data-act="clear" '+(state.cart.length?'':'disabled')+'>Clear</button></div>';
+  host.innerHTML=h;
+  var ci=$('#cashin');if(ci)ci.addEventListener('input',function(){state.cashIn=ci.value;var c2=Math.min(Math.max(+ci.value||0,0),cartTotal());ci.parentNode.nextElementSibling.querySelector('input').value=cartTotal()-c2});
+}
+function renderToday(){
+  var host=$('#todaybox');if(!host)return;var t=ymd(new Date()),ss=state.sales.filter(function(s){return s.date===t}),c=0,k=0;
+  ss.forEach(function(s){c+=s.cash||0;k+=s.till||0});
+  var by={};ss.forEach(function(s){(s.lines||[]).forEach(function(l){var a=by[l.name]||(by[l.name]={q:0,v:0});a.q+=l.qty;a.v+=l.qty*l.price})});
+  host.innerHTML=ss.length?'<div class="kpis" style="margin-bottom:12px"><div class="kpi"><div class="l">Total</div><div class="v">'+fmt(c+k)+'</div></div><div class="kpi"><div class="l">Cash collected</div><div class="v">'+fmt(c)+'</div></div><div class="kpi"><div class="l">Sent to till</div><div class="v">'+fmt(k)+'</div></div></div><div class="tw"><table><thead><tr><th>Drug sold today</th><th class="num">Qty</th><th class="num">Amount</th></tr></thead><tbody>'+Object.keys(by).sort().map(function(n){return '<tr><td>'+esc(n)+'</td><td class="num">'+by[n].q+'</td><td class="num">'+fmt(by[n].v)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="empty">No itemised sales yet today.</div>';
+}
+function addToCart(id){
+  var it=state.stock[id];if(!it)return;var l=state.cart.filter(function(x){return x.id===id})[0];
+  if(l){if(l.qty+1>it.qty){toast('Only '+it.qty+' '+it.name+' in stock');return}l.qty++}
+  else state.cart.push({id:id,name:it.name,qty:1,price:it.price||0,cost:it.cost||0});
+  renderCart();
+}
+async function recordSale(){
+  if(!state.db||!state.cart.length)return;
+  var lines=state.cart.filter(function(l){return l.qty>0});
+  for(var i=0;i<lines.length;i++){var l=lines[i];if(l.id){var it=state.stock[l.id];if(!it||l.qty>it.qty){toast('Not enough '+l.name+' in stock');return}}}
+  var total=cartTotal(),cash=0,till=0;
+  if(state.pay==='cash')cash=total;else if(state.pay==='till')till=total;else{cash=Math.min(Math.max(+state.cashIn||0,0),total);till=total-cash}
+  var items=lines.map(function(l){return {drug_id:l.id||'',name:l.name,qty:l.qty,price:l.price,cost:l.cost||0}});
+  var btn=document.querySelector('[data-act=record]');if(btn)btn.disabled=true;
+  try{
+    var res=await state.sb.rpc('record_sale',{p_items:items,p_cash:cash,p_till:till,p_note:null});
+    if(res.error)throw res.error;
+    await reload();
+    var msg=lines.filter(function(l){return l.id&&state.stock[l.id]}).map(function(l){return l.name+' now '+state.stock[l.id].qty});
+    state.cart=[];state.cashIn='';state.pay='cash';toast('Sale recorded. '+msg.slice(0,2).join(', '));renderSellDyn();
+  }catch(e){state.err=dbErr(e,'Could not save the sale');buildTab();toast(state.err);state.err=''}
+}
+/* ---------- stock ---------- */
+function buildStock(){
+  $('#tabbody').innerHTML='<div class="kpis" id="skpi"></div><div class="panel"><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Stock list</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><input id="sq" type="search" placeholder="Search" aria-label="Search stock"><button class="btn pri" data-act="newitem">Add drug</button><button class="btn" data-act="bulk">Paste a list</button></div></div><div class="tw" id="stbl"></div></div><div class="panel"><h2>Recent stock in</h2><div id="rlog"></div></div>';
+  $('#sq').addEventListener('input',renderStockDyn);renderStockDyn();
+}
+function renderStockDyn(){
+  var host=$('#stbl');if(!host)return;var q=($('#sq')||{value:''}).value.trim().toLowerCase(),all=Object.keys(state.stock).map(function(k){return state.stock[k]});
+  var cost=0,retail=0,lowN=0,hasEx=false;all.forEach(function(i){cost+=(i.qty||0)*(i.cost||0);retail+=(i.qty||0)*(i.price||0);if(status(i)!=='ok')lowN++;if(i.example)hasEx=true});
+  $('#skpi').innerHTML='<div class="kpi"><div class="l">Drugs listed</div><div class="v">'+all.length+'</div></div><div class="kpi"><div class="l">Stock at cost</div><div class="v">'+fmt(cost)+'</div></div><div class="kpi"><div class="l">Stock at selling price</div><div class="v">'+fmt(retail)+'</div></div><div class="kpi"><div class="l">Low or out</div><div class="v">'+lowN+'</div></div>';
+  var items=all.filter(function(i){return !q||i.name.toLowerCase().indexOf(q)>=0}).sort(function(a,b){return a.name.localeCompare(b.name)});
+  var h=hasEx?'<div class="banner" style="margin-bottom:10px">The rows marked Example use made-up quantities and prices. Edit them with your real stock, or <button class="btn sm danger" data-act="rmex">remove all examples</button></div>':'';
+  h+='<table><thead><tr><th>Drug</th><th class="num">In stock</th><th>Status</th><th class="num">Sell</th><th class="num">Buy</th><th class="num">Reorder at</th><th>&nbsp;</th></tr></thead><tbody>'
+   +items.map(function(i){return '<tr><td><b>'+esc(i.name)+'</b>'+(i.example?' <span class="pill ex">Example</span>':'')+'<br><span class="small muted">'+esc(i.category||'')+(i.unit?' · '+esc(i.unit):'')+'</span></td><td class="num"><b>'+i.qty+'</b></td><td>'+statusPill(i)+'</td><td class="num">'+fmt(i.price)+'</td><td class="num">'+fmt(i.cost)+'</td><td class="num">'+(i.reorder||0)+'</td><td style="white-space:nowrap"><button class="btn sm" data-act="restock" data-id="'+i.id+'">+ Stock in</button> <button class="btn sm" data-act="edititem" data-id="'+i.id+'">Edit</button></td></tr>'}).join('')+'</tbody></table>';
+  if(!items.length)h+='<div class="empty" style="margin-top:10px">'+(all.length?'No drug matches your search.':'Your stock list is empty. Use Add drug, or Paste a list to enter many at once.')+'</div>';
+  host.innerHTML=h;
+  var r=$('#rlog');if(r)r.innerHTML=state.restocks.length?'<div class="tw"><table><thead><tr><th>Date</th><th>Drug</th><th class="num">Added</th><th class="num">Cost</th></tr></thead><tbody>'+state.restocks.slice(0,12).map(function(x){return '<tr><td>'+fd(x.date)+'</td><td>'+esc(x.name)+'</td><td class="num">+'+x.qty+'</td><td class="num">'+(x.cost?fmt(x.cost):'–')+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="empty">Stock you add with + Stock in is listed here.</div>';
+}
+function overlay(html){$('#layer').innerHTML='<div class="overlay" data-act="ovbg"><div class="panel" role="dialog" aria-modal="true">'+html+'</div></div>'}
+function closeOv(){$('#layer').innerHTML=''}
+function itemForm(id){
+  var i=id?state.stock[id]:{name:'',category:'',unit:'tablets',qty:0,price:0,cost:0,reorder:10};
+  overlay('<h2>'+(id?'Edit drug':'Add drug')+'</h2><div class="form"><label>Name<input id="f_name" value="'+esc(i.name)+'"></label><label>Category<input id="f_cat" value="'+esc(i.category||'')+'" placeholder="e.g. Analgesic"></label><label>Unit<input id="f_unit" value="'+esc(i.unit||'')+'" placeholder="tablets, bottles"></label><label>Quantity in stock<input id="f_qty" type="number" min="0" value="'+i.qty+'"></label><label>Selling price (KES)<input id="f_price" type="number" min="0" value="'+i.price+'"></label><label>Buying price (KES)<input id="f_cost" type="number" min="0" value="'+i.cost+'"></label><label>Warn when at or below<input id="f_re" type="number" min="0" value="'+(i.reorder||0)+'"></label></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-act="saveitem" data-id="'+(id||'')+'">Save</button><button class="btn" data-act="closeov">Cancel</button>'+(id?'<button class="btn danger" data-act="delitem" data-id="'+id+'" style="margin-left:auto">Delete drug</button>':'')+'</div>');
+}
+async function saveItem(id){
+  var name=$('#f_name').value.trim();if(!name){toast('Enter the drug name');return}
+  var d={name:name,category:$('#f_cat').value.trim(),unit:$('#f_unit').value.trim(),qty:Math.max(0,Math.round(+$('#f_qty').value||0)),sell_price:Math.max(0,+$('#f_price').value||0),buy_price:Math.max(0,+$('#f_cost').value||0),reorder_level:Math.max(0,Math.round(+$('#f_re').value||0))};
+  try{var r=id?await state.sb.from('drugs').update(d).eq('id',id):await state.sb.from('drugs').insert(d);if(r.error)throw r.error;await reload();closeOv();toast('Saved '+name)}catch(e){toast(dbErr(e,'Could not save'))}
+}
+function restockForm(id){
+  var i=state.stock[id];overlay('<h2>Stock in: '+esc(i.name)+'</h2><p class="muted small" style="margin-top:0">Now '+i.qty+' '+esc(i.unit||'')+'. The number you enter is added to it.</p><div class="form"><label>Quantity received<input id="r_qty" type="number" min="1" value=""></label><label>Total cost paid (KES)<input id="r_cost" type="number" min="0" value=""></label></div><div style="margin-top:14px;display:flex;gap:8px"><button class="btn pri" data-act="saverestock" data-id="'+id+'">Add to stock</button><button class="btn" data-act="closeov">Cancel</button></div>');
+  setTimeout(function(){var e=$('#r_qty');if(e)e.focus()},30);
+}
+async function saveRestock(id){
+  var q=Math.round(+$('#r_qty').value||0),c=Math.max(0,+$('#r_cost').value||0);if(q<1){toast('Enter the quantity received');return}
+  var it=state.stock[id];
+  try{var r=await state.sb.from('stock_in').insert({drug_id:id,qty:q,total_cost:c});if(r.error)throw r.error;await reload();closeOv();toast(it.name+' now '+state.stock[id].qty)}catch(e){toast(dbErr(e,'Could not save'))}
+}
+function bulkForm(){
+  overlay('<h2>Paste a stock list</h2><p class="muted small" style="margin-top:0">One drug per line: name, quantity, selling price, buying price, warn level. Only name and quantity are required. Lines can be separated by commas or tabs.</p><textarea id="b_txt" rows="9" style="width:100%" placeholder="Paracetamol 500mg, 45, 5, 3, 20\nAmoxicillin 500mg caps, 100, 15, 9, 30"></textarea><div style="margin-top:12px;display:flex;gap:8px"><button class="btn pri" data-act="savebulk">Add to stock</button><button class="btn" data-act="closeov">Cancel</button></div>');
+}
+async function saveBulk(){
+  var lines=$('#b_txt').value.split(/\n/).map(function(s){return s.trim()}).filter(Boolean),n=0;
+  try{for(var i=0;i<lines.length;i++){var p=lines[i].split(/[,\t]/).map(function(s){return s.trim()});if(!p[0]||isNaN(+p[1]))continue;
+    var existing=Object.keys(state.stock).map(function(k){return state.stock[k]}).filter(function(x){return x.name.toLowerCase()===p[0].toLowerCase()})[0];
+    var qty=Math.round(+p[1]||0),price=+p[2]||0,cost=+p[3]||0,re=p[4]===undefined||p[4]===''?10:Math.round(+p[4]||0),r;
+    if(existing){r=await state.sb.from('drugs').update({sell_price:price||existing.price,buy_price:cost||existing.cost}).eq('id',existing.id);if(r.error)throw r.error;if(qty>0){r=await state.sb.from('stock_in').insert({drug_id:existing.id,qty:qty,total_cost:0});if(r.error)throw r.error}}
+    else{r=await state.sb.from('drugs').insert({name:p[0],qty:qty,sell_price:price,buy_price:cost,reorder_level:re});if(r.error)throw r.error}
+    n++}
+    await reload();closeOv();toast(n+' drugs added or topped up')}catch(e){await reload().catch(function(){});toast(dbErr(e,'Could not save'))}
+}
+/* ---------- sales log ---------- */
+function buildLog(){$('#tabbody').innerHTML='<div class="panel"><h2>Sales log<small>item by item, newest first</small></h2><div id="logbody"></div></div>';renderLogDyn()}
+function renderLogDyn(){
+  var host=$('#logbody');if(!host)return;var by={};state.sales.forEach(function(s){(by[s.date]||(by[s.date]=[])).push(s)});
+  var ds=Object.keys(by).sort().reverse();
+  if(!ds.length){host.innerHTML='<div class="empty">No itemised sales yet. Record a sale on the Sell tab and it will be listed here with the drugs, prices and how it was paid.</div>';return}
+  var h='';ds.slice(0,state.logDays).forEach(function(d){var ss=by[d].sort(function(a,b){return b.ts-a.ts}),c=0,k=0;ss.forEach(function(s){c+=s.cash||0;k+=s.till||0});
+    h+='<div class="dayhead"><span>'+fd(d)+'</span><span class="num">Total '+fmt(c+k)+' · cash '+fmt(c)+' · till '+fmt(k)+'</span></div>';
+    ss.forEach(function(s){var t=new Date(s.ts),pay=s.cash&&s.till?'Split':s.till?'Till':'Cash';
+      h+='<div class="sale"><span class="t">'+pad(t.getHours())+':'+pad(t.getMinutes())+'</span><span>'+(s.lines||[]).map(function(l){return esc(l.name)+' ×'+l.qty+' @'+fmt(l.price)}).join(', ')+'</span><span class="num"><b>'+fmt(s.total)+'</b> <span class="pill ex">'+pay+'</span></span><button class="btn sm danger" data-act="void" data-id="'+s.id+'">'+(state.confirmVoid===s.id?'Confirm: undo sale':'Undo')+'</button></div>'})});
+  if(ds.length>state.logDays)h+='<div style="margin-top:12px"><button class="btn" data-act="morelog">Show earlier days</button></div>';
+  host.innerHTML=h;
+}
+async function voidSale(id){
+  if(state.confirmVoid!==id){state.confirmVoid=id;renderLogDyn();return}
+  state.confirmVoid=null;
+  try{var r=await state.sb.from('sales').delete().eq('id',id);if(r.error)throw r.error;await reload();toast('Sale undone and stock put back')}catch(e){toast(dbErr(e,'Could not undo'))}
+}
+/* ---------- day book ---------- */
+function buildBook(){
+  var d=state.editDay||{date:ymd(new Date()),c:'',t:'',e:'',note:''};
+  $('#tabbody').innerHTML='<div class="panel"><h2>Record a day\'s totals<small>for days you did not enter item by item</small></h2><div class="form"><label>Date<input id="k_date" type="date" value="'+d.date+'"></label><label>Cash collected<input id="k_c" type="number" min="0" value="'+esc(d.c)+'"></label><label>Sent to till / account<input id="k_t" type="number" min="0" value="'+esc(d.t)+'"></label><label>Expenses<input id="k_e" type="number" min="0" value="'+esc(d.e)+'"></label><label>Note<input id="k_n" value="'+esc(d.note||'')+'" placeholder="optional"></label><button class="btn pri" data-act="savebook">Save day</button></div><p class="small muted" style="margin:10px 0 0">Do not enter totals for a day you recorded item by item on the Sell tab. Both would be added together.</p></div><div class="panel"><h2>Recent days</h2><div class="tw" id="booktbl"></div></div>';
+  renderBookDyn();
+}
+function renderBookDyn(){
+  var host=$('#booktbl');if(!host)return;var dm=dayMap(),ds=Object.keys(dm).sort().reverse().slice(0,45);
+  host.innerHTML='<table><thead><tr><th>Date</th><th class="num">Cash</th><th class="num">Till</th><th class="num">Total</th><th class="num">Expenses</th><th>From</th><th>&nbsp;</th></tr></thead><tbody>'+ds.map(function(d){var r=dm[d],src=(r.n?'Sell tab':'')+(r.n&&r.inBook?' + ':'')+(r.inBook?'Day book':'');
+    return '<tr><td>'+fd(d)+'</td><td class="num">'+fmt(r.c)+'</td><td class="num">'+fmt(r.t)+'</td><td class="num"><b>'+fmt(r.total)+'</b></td><td class="num">'+(r.e?fmt(r.e):'–')+'</td><td class="small muted">'+src+'</td><td style="white-space:nowrap">'+(r.inBook?'<button class="btn sm" data-act="editday" data-d="'+d+'">Edit</button> <button class="btn sm danger" data-act="delday" data-d="'+d+'">'+(state.confirmDay===d?'Confirm':'Delete')+'</button>':'')+'</td></tr>'}).join('')+'</tbody></table>'+(ds.length?'':'<div class="empty">No days recorded yet.</div>');
+}
+async function saveDay(){
+  var date=$('#k_date').value;if(!date){toast('Pick a date');return}
+  var row={day:date,cash:Math.max(0,Math.round(+$('#k_c').value||0)),till:Math.max(0,Math.round(+$('#k_t').value||0)),expenses:Math.max(0,Math.round(+$('#k_e').value||0)),note:$('#k_n').value.trim()||null};
+  try{var r=await state.sb.from('daily_book').upsert(row,{onConflict:'day'});if(r.error)throw r.error;await reload();state.editDay=null;toast('Saved '+fd(date));buildBook()}catch(e){toast(dbErr(e,'Could not save'))}
+}
+async function delDay(d){
+  if(state.confirmDay!==d){state.confirmDay=d;renderBookDyn();return}
+  state.confirmDay=null;
+  try{var r=await state.sb.from('daily_book').delete().eq('day',d);if(r.error)throw r.error;await reload();toast('Day removed')}catch(e){toast(dbErr(e,'Could not delete'))}
+}
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-act]');if(!b)return;var a=b.dataset.act,id=b.dataset.id;
+  if(a==='ovbg'){if(e.target===b)closeOv();return}
+  if(a==='add')addToCart(id);
+  else if(a==='addcustom'){var nm=state.search.trim();if(nm){state.cart.push({id:'',name:nm,qty:1,price:0,cost:0});state.search='';var q=$('#q');if(q)q.value='';renderSellDyn()}}
+  else if(a==='rm'){state.cart.splice(+b.dataset.i,1);renderCart()}
+  else if(a==='pay'){state.pay=b.dataset.p;renderCart()}
+  else if(a==='clear'){state.cart=[];renderCart()}
+  else if(a==='record')recordSale();
+  else if(a==='newitem')itemForm();
+  else if(a==='edititem')itemForm(id);
+  else if(a==='saveitem')saveItem(id);
+  else if(a==='delitem'){b.dataset.act='delitem2';b.textContent='Click again to delete'}
+  else if(a==='delitem2'){state.sb.from('drugs').delete().eq('id',id).then(function(r){if(r.error){toast(dbErr(r.error,'Could not delete'))}else{reload().then(function(){closeOv();toast('Drug deleted')})}})}
+  else if(a==='restock')restockForm(id);
+  else if(a==='saverestock')saveRestock(id);
+  else if(a==='bulk')bulkForm();
+  else if(a==='savebulk')saveBulk();
+  else if(a==='closeov')closeOv();
+  else if(a==='void')voidSale(id);
+  else if(a==='morelog'){state.logDays+=10;renderLogDyn()}
+  else if(a==='savebook')saveDay();
+  else if(a==='editday'){var dd=b.dataset.d,x=(state.book[dd.slice(0,7)]||{days:{}}).days[dd]||{};state.editDay={date:dd,c:x.c||'',t:x.t||'',e:x.e||'',note:x.note||''};buildBook();window.scrollTo(0,0)}
+  else if(a==='delday')delDay(b.dataset.d);
+});
+document.addEventListener('change',function(e){
+  var t=e.target,a=t.dataset&&t.dataset.act;if(!a)return;var i=+t.dataset.i,l=state.cart[i];if(!l)return;
+  if(a==='qty'){var v=Math.max(1,Math.round(+t.value||1));if(l.id&&state.stock[l.id]&&v>state.stock[l.id].qty){v=state.stock[l.id].qty;toast('Only '+v+' in stock')}l.qty=v;renderCart()}
+  else if(a==='price'){l.price=Math.max(0,+t.value||0);renderCart()}
+});
+
+
+/* ---------- supabase, login, boot ---------- */
+var SUPA_URL='https://dkmymnbjtzpuyzmyixzi.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrbXltbmJqdHpwdXl6bXlpeHppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NTQ4MDEsImV4cCI6MjEwOTUzMDgwMX0.72nJo42-Yi7LN0NrsFB8TG9FXMN9Mq1uLJj6tED3wPE';
+function dbErr(e,prefix){var m=(e&&e.message)||'error';if(/check constraint/i.test(m))m='Not enough stock for one of the drugs.';else if(/duplicate key/i.test(m))m='That name already exists.';else if(/Failed to fetch|NetworkError/i.test(m))m='No internet connection.';return prefix+': '+m}
+async function reload(){
+  var sb=state.sb;
+  var r=await Promise.all([
+    sb.from('drugs').select('*'),
+    sb.from('sales').select('*, sale_items(*)').order('sold_at',{ascending:false}).limit(3000),
+    sb.from('daily_book').select('*').order('day'),
+    sb.from('stock_in').select('*, drugs(name)').order('received_on',{ascending:false}).limit(30)
+  ]);
+  for(var i=0;i<r.length;i++)if(r[i].error)throw r[i].error;
+  var st={};r[0].data.forEach(function(d){st[d.id]={id:d.id,name:d.name,category:d.category||'',unit:d.unit||'',qty:+d.qty,price:+d.sell_price,cost:+d.buy_price,reorder:+d.reorder_level}});
+  state.stock=st;
+  state.sales=r[1].data.map(function(s){var ts=Date.parse(s.sold_at);return {id:s.id,ts:ts,date:s.sale_date,cash:+s.cash,till:+s.till,total:+s.cash+ +s.till,lines:(s.sale_items||[]).map(function(l){return {id:l.drug_id||'',name:l.drug_name,qty:+l.qty,price:+l.unit_price,cost:+l.unit_cost}})}});
+  var bk={};r[2].data.forEach(function(d){var ym=d.day.slice(0,7);(bk[ym]||(bk[ym]={days:{}})).days[d.day]={c:+d.cash,t:+d.till,e:+d.expenses,note:d.note||''}});
+  state.book=bk;
+  state.restocks=r[3].data.map(function(x){return {date:x.received_on,name:(x.drugs&&x.drugs.name)||'',qty:+x.qty,cost:+x.total_cost}});
+  refresh();
+}
+function showLogin(msg){$('#app').hidden=true;$('#auth').hidden=false;state.db=false;$('#lg_err').textContent=msg||''}
+async function enter(session){
+  $('#auth').hidden=true;$('#app').hidden=false;state.db=true;$('#who').textContent=session.user.email;
+  setTab();
+  try{await reload()}catch(e){state.err=dbErr(e,'Could not load data');var b=$('#banner');if(b)b.innerHTML='<div class="banner">'+esc(state.err)+'</div>'}
+}
+$('#lg_form').addEventListener('submit',async function(e){
+  e.preventDefault();$('#lg_err').textContent='';var b=$('#lg_btn');b.disabled=true;b.textContent='Signing in…';
+  try{var r=await state.sb.auth.signInWithPassword({email:$('#lg_email').value.trim(),password:$('#lg_pw').value});
+    if(r.error)throw r.error;$('#lg_pw').value='';await enter(r.data.session)}
+  catch(err){$('#lg_err').textContent=/Invalid login/i.test(err.message||'')?'Wrong email or password.':dbErr(err,'Could not sign in')}
+  b.disabled=false;b.textContent='Sign in';
+});
+$('#btn_out').addEventListener('click',async function(){await state.sb.auth.signOut();showLogin()});
+$('#btn_pw').addEventListener('click',function(){
+  overlay('<h2>Change password</h2><div class="form"><label>New password (at least 8 characters)<input id="np1" type="password" autocomplete="new-password"></label><label>Type it again<input id="np2" type="password" autocomplete="new-password"></label></div><div style="margin-top:14px;display:flex;gap:8px"><button class="btn pri" data-act="savepw">Save password</button><button class="btn" data-act="closeov">Cancel</button></div>');
+});
+document.addEventListener('click',async function(e){
+  var b=e.target.closest('[data-act=savepw]');if(!b)return;
+  var a=$('#np1').value,c=$('#np2').value;if(a.length<8){toast('Use at least 8 characters');return}if(a!==c){toast('The two passwords do not match');return}
+  var r=await state.sb.auth.updateUser({password:a});if(r.error){toast(dbErr(r.error,'Could not change password'))}else{closeOv();toast('Password changed')}
+});
+(async function(){
+  if(!window.supabase){showLogin('Could not load the sign-in library. Check your internet and reload.');return}
+  state.sb=window.supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  var s=await state.sb.auth.getSession();
+  if(s.data&&s.data.session)enter(s.data.session);else showLogin();
+  state.sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT')showLogin()});
+})();
+})();
+</script>
+</body>
+</html>
